@@ -71,23 +71,31 @@ def calculate_likelihood_gaussian_observation(x_n, mu_k, sigma_k):
 
 #  generate_data(n_observations: int, k_parameters=2) -> x_dataset: list 2x1
 #  init_random_parameters(k_parameters=2) -> parameters_matrix: list 2x2
-#  likelihood_matrix = [ [],
-#                        [] ]
-#  Example: [   [0.4, 0.2, 0.4] likelihood for mu1 sigma1
-#               [0.6, 0.9, 0.1] likelihood for mu2 sigma2
-#           ]
+#  Returns:
+#  likelihood_matrix = [ [1, 0],
+#                        [0, 1],
+#                        ...,
+#                        [1,0]]
 def calculate_membership_dataset(x_dataset, parameters_matrix):
-    likelihood_matrix = [[] for x in range(len(parameters_matrix))]
+    likelihood_matrix = []
     for dataset in x_dataset:
-        matrix_number = 0
-        for matrix in parameters_matrix:
-            mu = matrix[0]
-            sigma = matrix[1]
-            for data in dataset:
+        for data in dataset:
+            data_likelihood = []
+            for matrix in parameters_matrix:
+                mu = matrix[0]
+                sigma = matrix[1]
                 likelihood = calculate_likelihood_gaussian_observation(data.item(), mu.item(), sigma.item())
-                likelihood_matrix[matrix_number].append(likelihood)
-            matrix_number += 1
+                data_likelihood.append(likelihood)
+            for index in range(len(data_likelihood)):
+                data_likelihood[index] = 0 if data_likelihood[index] != max(data_likelihood) else 1
+            likelihood_matrix.append(data_likelihood)
     return likelihood_matrix
+
+
+#  generate_data(n_observations: int, k_parameters=2) -> x_dataset: list 2x1
+#  calculate_membership_dataset(x_dataset, parameters_matrix) -> membership_data
+def recalculate_parameters(x_dataset, membership_data):
+    pass
 
 
 my_data = generate_data(200)
