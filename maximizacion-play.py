@@ -1,9 +1,11 @@
 import torch
 import matplotlib.pyplot as plt
 import random
+import math
 from scipy.stats import norm
 
 # https://stackoverflow.com/questions/13998901/generating-a-random-hex-color-in-python
+# https://jeltef.github.io/PyLaTeX/current/examples/full.html
 
 MU_START = 10
 MU_END = 50
@@ -50,6 +52,7 @@ def sample_normal(n_observations: int):
     plt.show()
 
 
+#  Generates a k x 2 dimensions matrix with random mu and sigma
 def init_random_parameters(k_parameters=2):
     p_matrix = []
     for k in range(k_parameters):
@@ -58,6 +61,12 @@ def init_random_parameters(k_parameters=2):
         p_matrix.append([mu, sigma])
     p_matrix = torch.tensor(p_matrix)
     return p_matrix
+
+
+def calculate_likelihood_gaussian_observation(x_n, mu_k, sigma_k):
+    def probability_density_function(x, mu, sigma):
+        return (1/math.sqrt(2 * math.pi * sigma**2)) * math.e**(-(1/2) * ((x-mu) / sigma)**2)
+    return probability_density_function(x_n, mu_k, sigma_k)
 
 
 init_random_parameters()
