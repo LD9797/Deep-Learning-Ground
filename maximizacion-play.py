@@ -1,8 +1,7 @@
 import torch
 import matplotlib.pyplot as plt
-import numpy as np
 import random
-from scipy.stats import entropy
+from scipy.stats import norm
 
 
 def plot_bar(bins, histogram):
@@ -12,63 +11,46 @@ def plot_bar(bins, histogram):
 
 
 #  Segun el enunciado N oberbaciones y 2 funciones de densidad gauseannas
-def generate_data(n_obervations, k_parameters=2):
+def generate_data(n_observations, k_parameters=2):
     gaussian_distributions = []
     for k in range(k_parameters):
-        #  Genero miu aleatorio
-        random_mean = torch.tensor(random.uniform(-10, 10))
-        #  Genero sigma aleatorio
-        random_scale = torch.tensor(random.uniform(5, 10))
-        #  Genero distribucion con dichos parametros como salia en el jupyter del profe
-        normal_dist = torch.distributions.Normal(random_mean, random_scale)
-        gaussian_sample = normal_dist.sample((n_obervations, 1)).squeeze()
-        #  Agrego la distribucion en el arreglo
-        gaussian_distributions.append(gaussian_sample)
-
-    # SOLO PARA GRAFICAR (Igual que en el jupyter del profe)
-    fig = plt.figure(frameon=True, edgecolor='black')
-    axes = fig.add_axes([0, 0, 1, 1])
-    dist_number = 0
+        mu = torch.tensor(random.uniform(10, 50))
+        sigma = torch.tensor(random.uniform(1.1, 2.2))
+        normal_dist = torch.distributions.Normal(mu, sigma)
+        sample = normal_dist.sample((n_observations, 1)).squeeze()
+        gaussian_distributions.append(sample)
     for distribution in gaussian_distributions:
-        histogram, bins = np.histogram(distribution.numpy(), bins=100, range=(-30, 30))
-        p_1 = torch.tensor(histogram / histogram.sum())
-        axes.bar(bins[1:].tolist(), p_1.tolist(), 1, label='Distribution #' + str(dist_number))
-        dist_number += 1
-    axes.legend()
-    axes.grid(visible=True)
+        mean = torch.mean(distribution)
+        var = torch.var(distribution)
+        x_axis = torch.arange(min(distribution) - 5, max(distribution) + 5, 0.01)
+        def randomize(): return random.randint(0, 255)
+        color = '#%02X%02X%02X' % (randomize(), randomize(), randomize())
+        plt.scatter(distribution.numpy(), torch.zeros(n_observations), s=1, c=color, alpha=0.5)
+        plt.plot(x_axis.numpy(), norm.pdf(x_axis.numpy(), mean.numpy(), var.numpy()), c=color,
+                 label=r'$\mu=' + str(round(mean.item(), 2)) + r',\ \sigma=' + str(round(var.item(), 2)) + r'$')
+    plt.legend()
+    plt.show()
+    return gaussian_distributions
 
-    # Aqui genero las N obervaciones aleatorias
-    # Son basicamente un monton de numeros entre -30 y 30
-    x = np.random.uniform(-30, 30, [n_obervations])
-    y = np.zeros(n_obervations)
-    # Aqui se grafican dichas obervaciones
-    area = 40  # 0 to 15 point radii
-    x2 = np.random.uniform(10, 60, [n_obervations])
-    axes.scatter(x, y, s=area, c='orange', alpha=0.5)
-    axes.scatter(x2, y, s=area, c='blue', alpha=0.5)
+
+#  generate_data(200)
+
+
+def sample_normal(n_observations):
+    mu = torch.tensor(random.uniform(10, 50))
+    sigma = torch.tensor(random.uniform(1.1, 2.2))
+    normal_dist = torch.distributions.Normal(mu, sigma)
+    sample = normal_dist.sample((n_observations, 1)).squeeze()
+    mean = torch.mean(sample)
+    var = torch.var(sample)
+    x_axis = torch.arange(min(sample) - 5, max(sample) + 5, 0.01)
+    plt.scatter(sample.numpy(), torch.zeros(n_observations), s=1, c='blue', alpha=0.5)
+    plt.plot(x_axis.numpy(), norm.pdf(x_axis.numpy(), mean.numpy(), var.numpy()),
+             label=r'$\mu=' + str(round(mean.item(), 2)) + r',\ \sigma=' + str(round(var.item(), 2)) + r'$')
+    plt.legend()
     plt.show()
 
 
 generate_data(200)
 
-# Esto es lo que venia en el jupiter
-# n = 2000
-#
-# # Create gaussian noise values
-# # Params Media y Desviacion estandar
-# normal_dist = torch.distributions.Normal(torch.tensor([10.0]), torch.tensor([1.02]))
-# gaussian_sample = normal_dist.sample((n, 1)).squeeze()
-# print(gaussian_sample)
-#
-# histogram, bins = np.histogram(gaussian_sample.numpy(), bins=100, range=(0, 20))
-# p_1 = torch.tensor(histogram / histogram.sum())
-#
-# # Plot histogram
-# plot_bar(bins, p_1.numpy())
-# print("verify p[x] property")
-# print("Sum values is 1: ", p_1.sum())
-#
-# mean_x = torch.mean(gaussian_sample)
-# var_x = torch.var(gaussian_sample)
-# print("mean_x ", mean_x)
-# print("var_x ", var_x)
+# https://stackoverflow.com/questions/13998901/generating-a-random-hex-color-in-python
