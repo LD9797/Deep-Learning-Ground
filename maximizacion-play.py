@@ -87,17 +87,33 @@ def calculate_membership_dataset(x_dataset, parameters_matrix):
                 likelihood = calculate_likelihood_gaussian_observation(data.item(), mu.item(), sigma.item())
                 data_likelihood.append(likelihood)
             for index in range(len(data_likelihood)):
-                data_likelihood[index] = 0 if data_likelihood[index] != max(data_likelihood) else 1
+                data_likelihood[index] = 0.0 if data_likelihood[index] != max(data_likelihood) else 1.0
             likelihood_matrix.append(data_likelihood)
+    likelihood_matrix = torch.tensor(likelihood_matrix)
     return likelihood_matrix
 
 
-#  generate_data(n_observations: int, k_parameters=2) -> x_dataset: list 2x1
 #  calculate_membership_dataset(x_dataset, parameters_matrix) -> membership_data
-def recalculate_parameters(x_dataset, membership_data):
-    pass
+def recalculate_parameters(membership_data):
+    membership_data = torch.transpose(membership_data, 0, 1)
+    new_parameters = []
+    for k in membership_data:
+        mu = torch.mean(k)
+        sigma = torch.var(k)
+        new_parameters.append([mu, sigma])
+    return new_parameters
 
 
-my_data = generate_data(200)
-parameters = init_random_parameters()
-calculate_membership_dataset(my_data, parameters)
+def expectation_maximization(observations=200, k_parameters=2, iterations=5):
+    my_data = generate_data(observations, k_parameters)
+    parameters = init_random_parameters(k_parameters)
+    print("Initial parameters: " + str(parameters))
+    for iteration in range(iterations):
+        print("Iteration #" + str(iteration))
+        membership_data = calculate_membership_dataset(my_data, parameters)
+        print("Membership dataset: " + str(membership_data))
+        parameters = recalculate_parameters(membership_data)
+        print("New parameters: " + str(parameters))
+
+
+expectation_maximization()
