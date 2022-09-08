@@ -3,19 +3,20 @@ import matplotlib.pyplot as plt
 import random
 from scipy.stats import norm
 
+# https://stackoverflow.com/questions/13998901/generating-a-random-hex-color-in-python
 
-def plot_bar(bins, histogram):
-    fig = plt.figure()
-    axes = fig.add_axes([0, 0, 1, 1])
-    axes.bar(bins[1:].tolist(), histogram.tolist())
+MU_START = 10
+MU_END = 50
+SIGMA_START = 1.1
+SIGMA_END = 2.2
 
 
-#  Segun el enunciado N oberbaciones y 2 funciones de densidad gauseannas
-def generate_data(n_observations, k_parameters=2):
+#  N observations, K parameters = 2
+def generate_data(n_observations: int, k_parameters=2):
     gaussian_distributions = []
     for k in range(k_parameters):
-        mu = torch.tensor(random.uniform(10, 50))
-        sigma = torch.tensor(random.uniform(1.1, 2.2))
+        mu = torch.tensor(random.uniform(MU_START, MU_END))
+        sigma = torch.tensor(random.uniform(SIGMA_START, SIGMA_END))
         normal_dist = torch.distributions.Normal(mu, sigma)
         sample = normal_dist.sample((n_observations, 1)).squeeze()
         gaussian_distributions.append(sample)
@@ -33,12 +34,10 @@ def generate_data(n_observations, k_parameters=2):
     return gaussian_distributions
 
 
-#  generate_data(200)
-
-
-def sample_normal(n_observations):
-    mu = torch.tensor(random.uniform(10, 50))
-    sigma = torch.tensor(random.uniform(1.1, 2.2))
+#  Creates a sample of a normal distribution
+def sample_normal(n_observations: int):
+    mu = torch.tensor(random.uniform(MU_START, MU_END))
+    sigma = torch.tensor(random.uniform(SIGMA_START, SIGMA_END))
     normal_dist = torch.distributions.Normal(mu, sigma)
     sample = normal_dist.sample((n_observations, 1)).squeeze()
     mean = torch.mean(sample)
@@ -51,6 +50,14 @@ def sample_normal(n_observations):
     plt.show()
 
 
-generate_data(200)
+def init_random_parameters(k_parameters=2):
+    p_matrix = []
+    for k in range(k_parameters):
+        mu = torch.tensor(random.uniform(MU_START, MU_END))
+        sigma = torch.tensor(random.uniform(SIGMA_START, SIGMA_END))
+        p_matrix.append([mu, sigma])
+    p_matrix = torch.tensor(p_matrix)
+    return p_matrix
 
-# https://stackoverflow.com/questions/13998901/generating-a-random-hex-color-in-python
+
+init_random_parameters()
