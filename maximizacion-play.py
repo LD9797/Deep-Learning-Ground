@@ -13,6 +13,7 @@ SIGMA_START = 1.1
 SIGMA_END = 2.2
 
 
+#  color = '#%02X%02X%02X' % (randomize(), randomize(), randomize())
 def randomize(): return random.randint(0, 255)
 
 
@@ -20,9 +21,8 @@ def plot_observation(observation, show=False):
     mean = torch.mean(observation)
     var = torch.var(observation)
     x_axis = torch.arange(min(observation) - 5, max(observation) + 5, 0.01)
-    color = '#%02X%02X%02X' % (randomize(), randomize(), randomize())
-    plt.scatter(observation.numpy(), torch.zeros(len(observation)), s=1, c=color, alpha=0.5)
-    plt.plot(x_axis.numpy(), norm.pdf(x_axis.numpy(), mean.numpy(), var.numpy()), c=color,
+    plt.scatter(observation.numpy(), torch.zeros(len(observation)), s=1, alpha=0.5)
+    plt.plot(x_axis.numpy(), norm.pdf(x_axis.numpy(), mean.numpy(), var.numpy()),
              label=r'$\mu=' + str(round(mean.item(), 2)) + r',\ \sigma=' + str(round(var.item(), 2)) + r'$')
     if show:
         plt.legend()
@@ -37,8 +37,7 @@ def plot_gaussian_distribution_and_observations(distribution_parameters, observa
         mean = parameters[0]
         var = parameters[1]
         x_axis = torch.arange(mean / 2, mean * 2, 0.01)
-        color = '#%02X%02X%02X' % (randomize(), randomize(), randomize())
-        plt.plot(x_axis.numpy(), norm.pdf(x_axis.numpy(), mean.numpy(), var.numpy()), c=color,
+        plt.plot(x_axis.numpy(), norm.pdf(x_axis.numpy(), mean.numpy(), var.numpy()),
                  label=r'$\mu_' + str(param_number) + r'=' + str(round(mean.item(), 2)) +
                        r',\ \sigma_' + str(param_number) + '=' + str(round(var.item(), 2)) + r'$')
         param_number += 1
@@ -121,7 +120,14 @@ def recalculate_parameters(x_dataset, membership_data):
         data_set_one = torch.Tensor(data_set_one)
         mu = torch.mean(data_set_one)
         sigma = math.sqrt(torch.mean(data_set_one))
-        new_parameters.append([mu.item(), sigma])
+        #  In case no data in the dataset matched the distribution, re-initialize random parameters.
+        if mu.item() != mu.item() or sigma != sigma:
+            params = init_random_parameters(1)
+            mu = params[0][0]
+            sigma = params[0][1]
+            new_parameters.append([mu.item(), sigma.item()])
+        else:
+            new_parameters.append([mu.item(), sigma])
     new_parameters = torch.Tensor(new_parameters)
     return new_parameters
 
