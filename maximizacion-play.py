@@ -11,8 +11,8 @@ from scipy.stats import norm
 # Constants
 MU_START = 10
 MU_END = 50
-SIGMA_START = 1.1
-SIGMA_END = 2.2
+SIGMA_START = 4.1
+SIGMA_END = 6.2
 HEURISTIC_STEP = 5
 
 
@@ -21,12 +21,12 @@ def randomize(): return random.randint(0, 255)
 
 
 def plot_observation(observation, show=False):
-    mean = torch.mean(observation)
-    var = torch.var(observation)
+    mu = torch.mean(observation)
+    sigma = torch.std(observation, unbiased=True)
     x_axis = torch.arange(min(observation) - 5, max(observation) + 5, 0.01)
     plt.scatter(observation.numpy(), torch.zeros(len(observation)), s=5, alpha=0.5)
-    plt.plot(x_axis.numpy(), norm.pdf(x_axis.numpy(), mean.numpy(), var.numpy()),
-             label=r'$\mu=' + str(round(mean.item(), 2)) + r',\ \sigma=' + str(round(var.item(), 2)) + r'$')
+    plt.plot(x_axis.numpy(), norm.pdf(x_axis.numpy(), mu.numpy(), sigma.numpy()),
+             label=r'$\mu=' + str(round(mu.item(), 2)) + r',\ \sigma=' + str(round(sigma.item(), 2)) + r'$')
     if show:
         plt.legend()
         plt.show()
@@ -37,12 +37,12 @@ def plot_gaussian_distribution_and_observations(distribution_parameters, observa
         plot_observation(observation)
     param_number = 1
     for parameters in distribution_parameters:
-        mean = parameters[0]
-        var = parameters[1]
-        x_axis = torch.arange(mean / 2, mean * 2, 0.01)
-        plt.plot(x_axis.numpy(), norm.pdf(x_axis.numpy(), mean.numpy(), var.numpy()),
-                 label=r'$\mu_' + str(param_number) + r'=' + str(round(mean.item(), 2)) +
-                       r',\ \sigma_' + str(param_number) + '=' + str(round(var.item(), 2)) + r'$')
+        mu = parameters[0]
+        sigma = parameters[1]
+        x_axis = torch.arange(mu / 2, mu * 2, 0.01)
+        plt.plot(x_axis.numpy(), norm.pdf(x_axis.numpy(), mu.numpy(), sigma.numpy()),
+                 label=r'$\mu_' + str(param_number) + r'=' + str(round(mu.item(), 2)) +
+                       r',\ \sigma_' + str(param_number) + '=' + str(round(sigma.item(), 2)) + r'$')
         param_number += 1
     if show:
         plt.legend()
@@ -127,7 +127,7 @@ def recalculate_parameters(x_dataset, membership_data):
                 data_set_one.append(complete_dataset[one_hot_data])
         data_set_one = torch.Tensor(data_set_one)
         mu = torch.mean(data_set_one)
-        sigma = torch.std(data_set_one)
+        sigma = torch.std(data_set_one, unbiased=True)
         #  In case no data in the dataset matched the distribution, re-initialize random parameters.
         if mu.item() != mu.item() or sigma.item() != sigma.item():  # if nan
             params = init_random_parameters(1)
@@ -154,4 +154,4 @@ def expectation_maximization(observations=200, k_parameters=2, iterations=5, heu
         plot_gaussian_distribution_and_observations(parameters, my_data, show=True)
 
 
-expectation_maximization(observations=2000, heuristic=True, k_parameters=2, iterations=10)
+expectation_maximization(observations=2000, heuristic=True, k_parameters=2, iterations=5)
