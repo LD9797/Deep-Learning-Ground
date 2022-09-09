@@ -8,10 +8,12 @@ from scipy.stats import norm
 # https://jeltef.github.io/PyLaTeX/current/examples/full.html
 # https://matplotlib.org/stable/tutorials/text/usetex.html
 
+# Constants
 MU_START = 10
 MU_END = 50
 SIGMA_START = 1.1
 SIGMA_END = 2.2
+HEURISTIC_STEP = 5
 
 
 #  color = '#%02X%02X%02X' % (randomize(), randomize(), randomize())
@@ -22,7 +24,7 @@ def plot_observation(observation, show=False):
     mean = torch.mean(observation)
     var = torch.var(observation)
     x_axis = torch.arange(min(observation) - 5, max(observation) + 5, 0.01)
-    plt.scatter(observation.numpy(), torch.zeros(len(observation)), s=1, alpha=0.5)
+    plt.scatter(observation.numpy(), torch.zeros(len(observation)), s=5, alpha=0.5)
     plt.plot(x_axis.numpy(), norm.pdf(x_axis.numpy(), mean.numpy(), var.numpy()),
              label=r'$\mu=' + str(round(mean.item(), 2)) + r',\ \sigma=' + str(round(var.item(), 2)) + r'$')
     if show:
@@ -48,10 +50,13 @@ def plot_gaussian_distribution_and_observations(distribution_parameters, observa
 
 
 #  N observations, K parameters = 2
-def generate_data(n_observations: int, k_parameters=2, show=False):
+def generate_data(n_observations: int, k_parameters=2, show=False, heuristic=False):
     gaussian_distributions = []
+    heuristic_mu = random.uniform(MU_START, MU_END) if heuristic else 0
     for k in range(k_parameters):
-        mu = torch.tensor(random.uniform(MU_START, MU_END))
+        mu = torch.tensor(random.uniform(MU_START, MU_END)) if not heuristic else torch.tensor(heuristic_mu +
+                                                                                               HEURISTIC_STEP)
+        heuristic_mu += HEURISTIC_STEP if heuristic else 0
         sigma = torch.tensor(random.uniform(SIGMA_START, SIGMA_END))
         normal_dist = torch.distributions.Normal(mu, sigma)
         sample = normal_dist.sample((n_observations, 1)).squeeze()
@@ -88,7 +93,7 @@ def calculate_likelihood_gaussian_observation(x_n, mu_k, sigma_k):
 #                        [0, 1],
 #                        ...,
 #                        [1,0]]
-def calculate_membership_dataset(x_dataset, parameters_matrix, one_hot=True):
+def calculate_membership_dataset(x_dataset, parameters_matrix):
     likelihood_matrix = []
     for dataset in x_dataset:
         for data in dataset:
@@ -98,9 +103,8 @@ def calculate_membership_dataset(x_dataset, parameters_matrix, one_hot=True):
                 sigma = matrix[1]
                 likelihood = calculate_likelihood_gaussian_observation(data.item(), mu.item(), sigma.item())
                 data_likelihood.append(likelihood)
-            if one_hot:
-                for index in range(len(data_likelihood)):
-                    data_likelihood[index] = 0 if data_likelihood[index] != max(data_likelihood) else 1
+            for index in range(len(data_likelihood)):
+                data_likelihood[index] = 0 if data_likelihood[index] != max(data_likelihood) else 1
             likelihood_matrix.append(data_likelihood)
     likelihood_matrix = torch.tensor(likelihood_matrix)
     return likelihood_matrix
@@ -136,18 +140,18 @@ def recalculate_parameters(x_dataset, membership_data):
     return new_parameters
 
 
-def expectation_maximization(observations=200, k_parameters=2, iterations=5):
-    my_data = generate_data(observations, k_parameters, show=True)
+def expectation_maximization(observations=200, k_parameters=2, iterations=5, heuristic=False):
+    my_data = generate_data(observations, k_parameters, show=True, heuristic=heuristic)
     parameters = init_random_parameters(k_parameters)
     print("Initial parameters: " + str(parameters))
     plot_gaussian_distribution_and_observations(parameters, my_data, show=True)
     for iteration in range(iterations):
         print("Iteration #" + str(iteration))
-        membership_data = calculate_membership_dataset(my_data, parameters, one_hot=True)
+        membership_data = calculate_membership_dataset(my_data, parameters)
         print("Membership dataset: " + str(membership_data))
         parameters = recalculate_parameters(my_data, membership_data)
         print("New parameters: " + str(parameters))
         plot_gaussian_distribution_and_observations(parameters, my_data, show=True)
 
 
-expectation_maximization()
+expectation_maximization(observations=2000, heuristic=True, k_parameters=2, iterations=10)
