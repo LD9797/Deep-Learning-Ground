@@ -3,8 +3,6 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import torch
 
-plt.style.use('_mpl-gallery-nogrid')
-
 
 def derivada_funcion_a(x, y):
     return x / math.sqrt(x**2 + y**2)

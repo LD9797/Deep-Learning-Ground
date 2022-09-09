@@ -6,6 +6,7 @@ from scipy.stats import norm
 
 # https://stackoverflow.com/questions/13998901/generating-a-random-hex-color-in-python
 # https://jeltef.github.io/PyLaTeX/current/examples/full.html
+# https://matplotlib.org/stable/tutorials/text/usetex.html
 
 MU_START = 10
 MU_END = 50
@@ -106,6 +107,9 @@ def calculate_membership_dataset(x_dataset, parameters_matrix, one_hot=True):
 
 
 #  calculate_membership_dataset(x_dataset, parameters_matrix) -> membership_data
+#  [ 23 [1, 0]
+#    12 [1, 0]
+#    11 [1, 0] ]
 def recalculate_parameters(x_dataset, membership_data):
     membership_data = torch.transpose(membership_data, 0, 1)
     complete_dataset = torch.Tensor()
@@ -119,15 +123,15 @@ def recalculate_parameters(x_dataset, membership_data):
                 data_set_one.append(complete_dataset[one_hot_data])
         data_set_one = torch.Tensor(data_set_one)
         mu = torch.mean(data_set_one)
-        sigma = math.sqrt(torch.mean(data_set_one))
+        sigma = torch.std(data_set_one)
         #  In case no data in the dataset matched the distribution, re-initialize random parameters.
-        if mu.item() != mu.item() or sigma != sigma:
+        if mu.item() != mu.item() or sigma.item() != sigma.item():  # if nan
             params = init_random_parameters(1)
             mu = params[0][0]
             sigma = params[0][1]
             new_parameters.append([mu.item(), sigma.item()])
         else:
-            new_parameters.append([mu.item(), sigma])
+            new_parameters.append([mu.item(), sigma.item()])
     new_parameters = torch.Tensor(new_parameters)
     return new_parameters
 
