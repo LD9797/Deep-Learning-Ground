@@ -57,7 +57,7 @@ if __name__ == "__main__":
     ax.set_zlabel('z')
     agents_z = f(agents_x, agents_y)
     ax.scatter(agents_x, agents_y, agents_z, s=40, lw=0, color='red', alpha=1)
-    ax.plot_surface(X, Y, Z,  rstride=1, cstride=1, cmap='viridis', edgecolor='none')
+    #  ax.plot_surface(X, Y, Z,  rstride=1, cstride=1, cmap='viridis', edgecolor='none')
 
     ax.quiver(agents_x[:-1], agents_y[:-1], agents_z[:-1], (agents_x[1:]-agents_x[:-1]), (agents_y[1:]-agents_y[:-1]),
               (agents_z[1:]-agents_z[:-1]), length=1)
