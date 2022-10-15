@@ -99,7 +99,7 @@ def newton_raphson(initial_position, derivative_x, derivative_y, epochs=5):
         gradient = gradient.resize_(2, 1)
         hessian_matrix = torch_hessian_matrix((agent[0], agent[1]))
         agent.resize_(2, 1)
-        agent = agent + (torch.mm(-hessian_matrix ** -1, gradient))
+        agent = agent + (torch.mm(-torch.inverse(hessian_matrix), gradient))
         agents.append(agent)
     for agent in agents:
         agent.resize_(2)
