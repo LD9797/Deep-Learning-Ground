@@ -5,7 +5,7 @@ import torch
 from gdm import f, f_prima_y, f_prima_x
 from sympy import diff, symbols, parse_expr, E, sympify, latex
 import numpy as np
-from torch.autograd import Variable
+from torch.autograd import Variable, grad
 
 
 def visual_function(expression: str = ""):
@@ -56,7 +56,7 @@ def matrix_to_latex(matrix):
     return latex_matrix
 
 
-def torch_hessian_matrix(point: tuple):
+def hessian_matrix_old(point: tuple):
     x = torch.FloatTensor([point[0]])
     y = torch.FloatTensor([point[1]])
     x, y = Variable(x, requires_grad=True), Variable(y, requires_grad=True)
@@ -91,13 +91,13 @@ def torch_hessian_matrix(point: tuple):
     return hess_matrix
 
 
-def newton_raphson(initial_position, derivative_x, derivative_y, epochs=5):
+def newton_raphson_old(initial_position, derivative_x, derivative_y, epochs=5):
     agent = initial_position
     agents = [agent]
     for epoc in range(epochs):
         gradient = torch.Tensor([derivative_x(agent[0], agent[1]), derivative_y(agent[0], agent[1])])
         gradient = gradient.resize_(2, 1)
-        hessian_matrix = torch_hessian_matrix((agent[0], agent[1]))
+        hessian_matrix = hessian_matrix_old((agent[0], agent[1]))
         agent.resize_(2, 1)
         agent = agent + (torch.mm(-torch.inverse(hessian_matrix), gradient))
         agents.append(agent)
@@ -106,15 +106,58 @@ def newton_raphson(initial_position, derivative_x, derivative_y, epochs=5):
     return agents
 
 
-h_matrix = visual_hessian_matrix(visual_function())
-#  latex_h_matrix = matrix_to_latex(h_matrix)
-#  torch_hessian = torch_hessian_matrix((2, 3))
+def hessian_matrix(gradient, agent, visualize=True):
+    if visualize:
+        print(f"First Derivative: {gradient}")
+    dimensions = agent.shape[0]
+    hess_matrix = torch.zeros(dimensions, dimensions)
+    for dimension in range(dimensions):
+        second_derivative = grad(gradient[dimension], agent, create_graph=True)[0]
+        if visualize:
+            print(f"Second derivative on dimension{dimension}: {second_derivative}")
+        hess_matrix[dimension:] = second_derivative
+    if visualize:
+        print(f"\nHessian matrix: {hess_matrix}\n")
+    return hess_matrix
+
+
+def newton_raphson(initial_position, function, epochs=5, visualize=True, damping_factor=0.4):
+    agent = initial_position
+    agent.requires_grad = True
+    dimension = agent.shape[0]
+    agents = [agent]
+    if visualize:
+        h_matrix = visual_hessian_matrix(visual_function())
+        latex_h_matrix = matrix_to_latex(h_matrix)
+        print(f"Hessian Matrix: {h_matrix}")
+        print(f"Hessian Matrix in Latex: {latex_h_matrix}\n")
+    for epoch in range(epochs):
+        if visualize:
+            print(f"Agent: {agent}")
+        function_eval = function(agent[:1], agent[1:])
+        gradient = grad(function_eval, agent, create_graph=True)[0]
+        inverse_hess_matrix = torch.nan_to_num(torch.inverse(hessian_matrix(gradient, agent, visualize=visualize)))
+        hess_gradient = (torch.mm(inverse_hess_matrix, gradient.view(gradient.shape[0], 1)))
+        if visualize:
+            print(f"Gradient: {hess_gradient}")
+        new_agent = agent.view(agent.shape[0], 1) - damping_factor * hess_gradient
+        new_agent = new_agent.view(dimension)
+        if function(new_agent[:1], new_agent[1:]) > function_eval:
+            agent = agent.view(agent.shape[0], 1) - damping_factor * torch.abs(hess_gradient)
+        else:
+            agent = new_agent
+        agent = agent.view(dimension)
+        theta = agent.detach()
+        agents.append(theta)
+        if visualize:
+            print(f"New agent: {theta}")
+    agents[0] = agents[0].detach()
+    return agents
 
 
 if __name__ == "__main__":
-    init_position = torch.Tensor([0.5, -0.23])
-    thetas = newton_raphson(init_position, f_prima_x, f_prima_y)
-
+    init_position = torch.Tensor([0.5, 0.1])
+    thetas = newton_raphson(init_position, f, epochs=6)
     #  Plot
     linspace_x = torch.linspace(-2, 2, steps=30)
     linspace_y = torch.linspace(-2, 2, steps=30)
