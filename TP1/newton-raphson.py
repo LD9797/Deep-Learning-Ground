@@ -2,7 +2,7 @@ import math
 import matplotlib.pyplot as plt
 import sympy.core
 import torch
-from gdm import f, f_prima_y, f_prima_x
+from gdm import f
 from sympy import diff, symbols, parse_expr, E, sympify, latex
 import numpy as np
 from torch.autograd import Variable, grad

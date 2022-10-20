@@ -1,35 +1,32 @@
 import math
 import matplotlib.pyplot as plt
 import torch
+from torch.autograd import grad
 
 
 def f(x, y):
     return x * math.e ** (-x**2 - y**2)
 
 
-def f_prima_x(x, y):
-    return (1 - 2 * x**2) * math.e ** (-x**2 -y**2)
-
-
-def f_prima_y(x, y):
-    return -2 * x * y * math.e ** (-y**2 - x**2)
-
-
-def gradient_descent_momentum(initial_position, derivative_x, derivative_y, epochs=5, momentum=0.1, alpha=0.05):
+def gradient_descent_momentum(initial_position, epochs=5, momentum=0.1, alpha=0.05):
     agent = initial_position
+    agent.requires_grad = True
     agents = [agent]
     inertia = 0
     for epoc in range(epochs):
-        gradient = torch.Tensor([derivative_x(agent[0], agent[1]), derivative_y(agent[0], agent[1])])
+        function_eval = f(agent[:1], agent[1:])
+        gradient = grad(function_eval, agent, create_graph=True)[0]
         agent = agent - ((momentum * inertia) + alpha * gradient)
-        agents.append(agent)
+        theta = agent.detach()
+        agents.append(theta)
         inertia = (momentum * inertia) + alpha * (1 - momentum) * gradient
+    agents[0] = agents[0].detach()
     return agents
 
 
 if __name__ == "__main__":
     init_position = torch.Tensor([0.5, -0.23])
-    thetas = gradient_descent_momentum(init_position, f_prima_x, f_prima_y, epochs=10, alpha=0.25, momentum=0.5)
+    thetas = gradient_descent_momentum(init_position, epochs=10, alpha=0.25, momentum=0.5)
 
     #  Plot
     linspace_x = torch.linspace(-2, 2, steps=30)
