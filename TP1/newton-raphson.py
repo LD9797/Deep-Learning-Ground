@@ -21,27 +21,46 @@ def visual_hessian_matrix(expression: sympy.core.Expr, variables: list = None):
         variables = ["x", "y"]
     hess_matrix = np.empty((len(variables), len(variables)), dtype=sympy.core.Expr)
     matrix_col_row = 0
+    derivatives = []
     for variable in variables:
         print("Building column #" + str(matrix_col_row + 1) + " and row #" + str(matrix_col_row + 1))
         first_derivative = sympify(diff(expression, variable))
-        print("df/d" + variable + "=" + str(first_derivative))
+        der = "df/d" + variable + "=" + str(first_derivative)
+        derivatives.append(der)
+        print(der)
         variable_index = variables.index(variable)
         column = []
         for second_variable in variables[variable_index:]:
             second_derivative = sympify(diff(first_derivative, second_variable))
-            print("df/d" + second_variable + "d" + variable + "=" + str(second_derivative))
+            der = "df/d" + second_variable + "d" + variable + "=" + str(second_derivative)
+            derivatives.append(der)
+            print(der)
             column.append(second_derivative)
         hess_matrix[matrix_col_row:, matrix_col_row] = column
         row = []
         for second_variable in variables[variable_index+1:]:
             derivative_second_var = sympify(diff(expression, second_variable))
-            print("df/d" + second_variable + "=" + str(derivative_second_var))
+            der = "df/d" + second_variable + "=" + str(derivative_second_var)
+            derivatives.append(der)
+            print(der)
             second_derivative = sympify(diff(derivative_second_var, variable))
-            print("df/d" + variable + "d" + second_variable + "=" + str(second_derivative))
+            der = "df/d" + variable + "d" + second_variable + "=" + str(second_derivative)
+            derivatives.append(der)
+            print(der)
             row.append(second_derivative)
         hess_matrix[matrix_col_row, matrix_col_row + 1:] = row
         matrix_col_row += 1
-    return hess_matrix
+    return hess_matrix, derivatives
+
+
+def derivatives_to_latex(derivatives):
+    latex_derivatives = []
+    for der in derivatives:
+        start = "$" + der[0: der.find("=")]
+        func = sympify(der[der.find("=") + 1:])
+        latex_derivative = start + "=" + str(func) + "$\n"
+        latex_derivatives.append(latex_derivative)
+    return latex_derivatives
 
 
 def matrix_to_latex(matrix):
@@ -153,6 +172,10 @@ def newton_raphson(initial_position, function, epochs=5, visualize=True, damping
             print(f"New agent: {theta}")
     agents[0] = agents[0].detach()
     return agents
+
+
+hess_matrix, derivatives = visual_hessian_matrix(visual_function())
+derivatives_to_latex(derivatives)
 
 
 if __name__ == "__main__":
