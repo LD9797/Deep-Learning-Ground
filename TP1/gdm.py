@@ -8,7 +8,7 @@ def f(x, y):
     return x * math.e ** (-x**2 - y**2)
 
 
-def gradient_descent_momentum(initial_position, epochs=5, momentum=0.1, alpha=0.05):
+def gradient_descent_momentum(initial_position, epochs=5, momentum=0.1, alpha=0.05, epsilon=0.2):
     agent = initial_position
     agent.requires_grad = True
     agents = [agent]
@@ -16,6 +16,8 @@ def gradient_descent_momentum(initial_position, epochs=5, momentum=0.1, alpha=0.
     for epoc in range(epochs):
         function_eval = f(agent[:1], agent[1:])
         gradient = grad(function_eval, agent, create_graph=True)[0]
+        if torch.norm(gradient) < epsilon:
+            break
         agent = agent - ((momentum * inertia) + alpha * gradient)
         theta = agent.detach()
         agents.append(theta)
