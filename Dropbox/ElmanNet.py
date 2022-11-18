@@ -6,6 +6,7 @@ from torch.autograd import Variable
 import numpy as np
 import matplotlib.pyplot as plt
 import torch.nn.init as init
+from sklearn.linear_model._logistic import LogisticRegression
 
 #type for tensors
 dtype = torch.FloatTensor
