@@ -2,7 +2,7 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 import pandas as pd
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 import torch
@@ -15,6 +15,13 @@ import numpy as np
 
 COLLECTION_PATH = ".\\smsspamcollection"
 MAX_WORDS = 200
+LEARNING_RATE = 0.01
+EPOCHS = 10
+BATCH_SIZE = 64
+HIDDEN_DIM = 20
+LSTM_LAYERS = 2
+TEST_SIZE = 0.4
+
 
 
 # Processing
@@ -27,40 +34,11 @@ def preprocesar_documento_1(document, to_string=False):
     return filtration if not to_string else ' '.join(filtration)
 
 
-"""Lemmatize `word` using WordNet's built-in morphy function.
-        Returns the input word unchanged if it cannot be found in WordNet.
-
-        :param word: The input word to lemmatize.
-        :type word: str
-        :param pos: The Part Of Speech tag. Valid options are `"n"` for nouns,
-            `"v"` for verbs, `"a"` for adjectives, `"r"` for adverbs and `"s"`
-            for satellite adjectives.
-        :param pos: str
-        :return: The lemma of `word`, for the given `pos`.
-"""
-
-
 def preprocesar_documento_2(document, to_string=False):
-    word_tokens = word_tokenize(document)
+    word_tokens = preprocesar_documento_1(document)
     lemmatizer = WordNetLemmatizer()
-    word_tokens = [token.lower() for token in word_tokens]
-    word_tokens = [token for token in word_tokens if token.isalnum()]  # To remove punctuations
     filtration = [lemmatizer.lemmatize(word, pos="v") for word in word_tokens]
     return filtration if not to_string else ' '.join(filtration)
-
-
-def preprocess_example():
-    with open(COLLECTION_PATH + "\\SMSSpamCollection", 'r') as collection:
-        for line in collection:
-            line = line.replace("ham", "")
-            line = line.replace("spam", "")
-            print("Line:")
-            print(line)
-            print("Preprocess #1")
-            print(preprocesar_documento_1(line, to_string=True))
-            print("Preprocess #2")
-            print(preprocesar_documento_2(line, to_string=True))
-            break
 
 
 #  Function Equivalent to prepare_tokens
@@ -103,34 +81,22 @@ def adapt_to_input_layer(dataset, input_layer_size=MAX_WORDS):
 
 # Data iterator
 class DatasetMaper(Dataset):
-    '''
-    Handles batches of dataset
-    '''
 
     def __init__(self, x, y):
-        """
-        Inits the dataset mapper
-        """
         self.x = x
         self.y = y
 
     def __len__(self):
-        """
-        Returns the length of the dataset
-        """
         return len(self.x)
 
     def __getitem__(self, idx):
-        """
-        Fetches a specific item by id
-        """
         return self.x[idx], self.y[idx]
 
 
 # Model !
 class LSTM_TweetClassifier(nn.ModuleList):
 
-    def __init__(self, batch_size=64, hidden_dim=20, lstm_layers=2, max_words=MAX_WORDS):
+    def __init__(self, batch_size=BATCH_SIZE, hidden_dim=HIDDEN_DIM, lstm_layers=LSTM_LAYERS, max_words=MAX_WORDS):
         """
         param batch_size: batch size for training data
         param hidden_dim: number of hidden units used in the LSTM and the Embedding layer
@@ -167,8 +133,6 @@ class LSTM_TweetClassifier(nn.ModuleList):
         # The resulting tensor will have values sampled from \mathcal{N}(0, \text{std}^2)N(0,std)
         torch.nn.init.xavier_normal_(h)
         torch.nn.init.xavier_normal_(c)
-        # print("x shape ", x.shape)
-        # print("embedding ", self.embedding)
         out = self.embedding(x)
         out, (hidden, cell) = self.lstm(out, (h, c))
         out = self.dropout(out)
@@ -184,11 +148,11 @@ class LSTM_TweetClassifier(nn.ModuleList):
 
 #  Data loader
 def load_process_data():
-    batch_size = 64
+    batch_size = BATCH_SIZE
     # Load dataset
     dataset_frame = pd.read_csv('smsspamcollection\\SMSSpamCollection', delimiter='\t', header=None)
     # Preprocess document
-    sentences_list = [preprocesar_documento_2(sentence) for sentence in dataset_frame[1]]
+    sentences_list = [preprocesar_documento_1(sentence) for sentence in dataset_frame[1]]
     # Add index to every word
     words_dictionary = tokens_to_indexes(sentences_list)
     # Transform tokens (words) to indexes (numbers)
@@ -215,36 +179,18 @@ def calculate_accuray(y_pred, y_gt):
 def evaluate_model(model, loader_test):
     predictions = []
     accuracies = []
-    # The model is turned in evaluation mode
     model.eval()
-
-    # Skipping gradients update
     with torch.no_grad():
-        # Iterate over the DataLoader object
         for x_batch, y_batch in loader_test:
-            # print("batch")
             x_batch = torch.t(torch.stack(x_batch))
             x = x_batch.type(torch.LongTensor)
             y = y_batch.type(torch.FloatTensor)
-
-            # Feed the model
             y_pred = model(x)
             y_pred = torch.round(y_pred).flatten()
-            # print("y_pred \n ", y_pred)
-            # Save prediction
             predictions += list(y_pred.detach().numpy())
             acc_batch = accuracy_score(y_pred, y)
             accuracies += [acc_batch]
     return np.array(accuracies)
-
-
-#  Train Model
-loader_training, loader_test = load_process_data()
-
-#  hyper parameters
-learning_rate = 0.01
-epochs = 50
-model = LSTM_TweetClassifier()
 
 
 def train_model(model, epochs=10, learning_rate=0.01):
@@ -270,7 +216,9 @@ def train_model(model, epochs=10, learning_rate=0.01):
         print("Epoch ", epoch, " Loss training : ", loss_dataset.item(), " Accuracy test: ", accuracies.mean())
 
 
-train_model(model, epochs, learning_rate)
 
+loader_training, loader_test = load_process_data()
+model = LSTM_TweetClassifier()
+train_model(model, EPOCHS, LEARNING_RATE)
 accuracies = evaluate_model(model, loader_test)
 print("average accuracy : ", accuracies.mean())
