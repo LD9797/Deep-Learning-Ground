@@ -13,7 +13,10 @@ from nltk.stem import WordNetLemmatizer
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 import pandas as pd
-
+import torch.optim as optim
+import torch.nn.functional as F
+from sklearn.metrics import accuracy_score
+import numpy as np
 
 
 def preprocesar_documento_1(document, to_string=False):
@@ -71,6 +74,7 @@ class Preprocessing:
         # tokenize the input text
         self.tokens = Tokenizer(num_words=self.max_words)
         self.tokens.fit_on_texts(self.x_train)
+        pass
 
     def sequence_to_token(self, x):
         """
@@ -81,8 +85,6 @@ class Preprocessing:
         # add padding using the maximum length specified
         # Rellena con 0 hacia la izquierda y deja la palabra en una lista de len self.max_len
         return keras.utils.pad_sequences(sequences, maxlen=self.max_len)
-
-
 
 
 class LSTM_TweetClassifier(nn.ModuleList):
@@ -186,3 +188,90 @@ def create_data_loaders(batch_size = 64):
 
 
 loader_training, loader_test = create_data_loaders()
+
+
+# hyper parameters
+learning_rate = 0.01
+epochs = 50
+model = LSTM_TweetClassifier()
+
+
+def train_model(model, epochs=10, learning_rate=0.01):
+    # Defines a RMSprop optimizer to update the parameters
+    optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
+
+    for epoch in range(epochs):
+
+        predictions = []
+
+        # model in training mode
+        model.train()
+        loss_dataset = 0
+        for x_batch, y_batch in loader_training:
+            # print("x_batch \n ", x_batch)
+            # print("y batch \n", y_batch)
+            x = x_batch.type(torch.LongTensor)
+            y = y_batch.type(torch.FloatTensor)
+            # Feed the model the entire sequence and get output "y_pred"
+
+            for data in x:
+                print(data)
+
+            y_pred = model(x).flatten()
+            # print("y\n", y)
+            # print("y pred ", y_pred)
+            # Calculate loss
+            loss = F.binary_cross_entropy(y_pred, y)
+
+            # The gradientes are calculated
+            # i.e. derivates are calculated
+            loss.backward()
+
+            # Each parameter is updated
+            # with torch.no_grad():
+            #     a -= lr * a.grad
+            #     b -= lr * b.grad
+            optimizer.step()
+            # Take the gradients to zero!
+            # a.grad.zero_()
+            # b.grad.zero_()
+            optimizer.zero_grad()
+            loss_dataset += loss
+        accuracies = evaluate_model(model, loader_test)
+        print("Epoch ", epoch, " Loss training : ", loss_dataset.item(), " Accuracy test: ", accuracies.mean())
+
+
+
+def calculate_accuray(y_pred, y_gt):
+    return accuracy_score(y_pred, y_gt)
+
+
+def evaluate_model(model, loader_test):
+    predictions = []
+    accuracies = []
+    # The model is turned in evaluation mode
+    model.eval()
+
+    # Skipping gradients update
+    with torch.no_grad():
+        # Iterate over the DataLoader object
+        for x_batch, y_batch in loader_test:
+            # print("batch")
+            x = x_batch.type(torch.LongTensor)
+            y = y_batch.type(torch.FloatTensor)
+
+            # Feed the model
+            y_pred = model(x)
+            y_pred = torch.round(y_pred).flatten()
+            # print("y_pred \n ", y_pred)
+            # Save prediction
+            predictions += list(y_pred.detach().numpy())
+            acc_batch = accuracy_score(y_pred, y)
+            accuracies += [acc_batch]
+    return np.array(accuracies)
+
+
+train_model(model, epochs, learning_rate)
+
+accuracies = evaluate_model(model, loader_test)
+print("average accuracy : ", accuracies.mean())
